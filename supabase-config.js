@@ -3,8 +3,8 @@
 // Get these from: supabase.com → Your Project → Settings → API
 // ──────────────────────────────────────────────────────────
 
-const SUPABASE_URL      = 'sb_publishable_gHPvHozJY_HGrFav4Rfv5A_cs8jcZx7';
-const SUPABASE_ANON_KEY = 'sb_secret_aA4RzLkMb4yowCrZ1G5UXg_oBZe-5FQ';
+const SUPABASE_URL      = 'https://tjhacfawxelnnmugizqs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaGFjZmF3eGVsbm5tdWdpenFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjI0MzMsImV4cCI6MjA4ODczODQzM30.wQGflZ-IldBg8kgSsRrWZ607d5bSRa3iB9gkT0VS4yA';
 
 const BUCKETS = {
   reading:   'reading-tests',
