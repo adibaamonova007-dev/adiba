@@ -3,8 +3,8 @@
 // Get these from: supabase.com → Your Project → Settings → API
 // ──────────────────────────────────────────────────────────
 
-const SUPABASE_URL      = 'https://YOUR_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';
+const SUPABASE_URL      = 'sb_publishable_gHPvHozJY_HGrFav4Rfv5A_cs8jcZx7';
+const SUPABASE_ANON_KEY = 'sb_secret_aA4RzLkMb4yowCrZ1G5UXg_oBZe-5FQ';
 
 const BUCKETS = {
   reading:   'reading-tests',
