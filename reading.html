@@ -28,7 +28,7 @@
 <div class="page-header">
   <div class="page-header-inner">
     <h1>📖 Reading Tests</h1>
-    <p>Academic & General Training passages. Click any test to open it in a new tab.</p>
+    <p>Click any test to open the full exam interface — timer, highlights, and answer sheet included.</p>
   </div>
 </div>
 
@@ -50,23 +50,63 @@
 
 <script src="script.js"></script>
 <script>
-  _sb.auth.getSession().then(({data:{session}})=>{
-    if(!session) location.href="login.html?next="+encodeURIComponent(location.pathname.split("/").pop());
-  } else {
-    const lb = document.getElementById('nav-logout');
-    if(lb) lb.addEventListener('click', async e => { e.preventDefault(); await _sb.auth.signOut(); location.href='login.html'; });
-  }
-});
-</script>
-<script>
+  // Auth guard
+  _sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) {
+      location.href = 'login.html?next=reading.html';
+    } else {
+      const lb = document.getElementById('nav-logout');
+      if (lb) lb.addEventListener('click', async e => {
+        e.preventDefault();
+        await _sb.auth.signOut();
+        location.href = 'login.html';
+      });
+    }
+  });
+
   loadAnnouncements('announcements-container');
-  const listEl = document.getElementById('reading-list');
-  loadFilesFromBucket(BUCKETS.reading, listEl, 'No reading tests uploaded yet. Check back soon!');
+
+  async function loadReadingTests() {
+    const listEl = document.getElementById('reading-list');
+    listEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading tests…</span></div>`;
+    try {
+      const { data, error } = await _sb.storage.from(BUCKETS.reading).list('', {
+        limit: 200, sortBy: { column: 'created_at', order: 'desc' }
+      });
+      if (error) throw error;
+      const files = (data || []).filter(f => f.name !== '.emptyFolderPlaceholder');
+      if (!files.length) {
+        listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><h3>No tests yet</h3><p>Check back soon!</p></div>`;
+        return;
+      }
+      listEl.innerHTML = files.map((file, i) => {
+        const niceName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+        const examUrl = `exam.html?file=${encodeURIComponent(file.name)}&bucket=reading-tests&name=${encodeURIComponent(niceName)}`;
+        return `
+          <a href="${examUrl}" class="test-item">
+            <div class="test-item-left">
+              <div class="test-num">${String(i+1).padStart(2,'0')}</div>
+              <div>
+                <div class="test-name">${niceName}</div>
+                <div class="test-date">${formatDate(file.created_at)} · ${formatSize(file.metadata?.size)}</div>
+              </div>
+            </div>
+            <span class="test-badge" style="display:flex;align-items:center;gap:.4rem;">
+              ▶ Start Exam
+            </span>
+          </a>`;
+      }).join('');
+    } catch (err) {
+      listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error</h3><p>${err.message}</p></div>`;
+    }
+  }
+
+  loadReadingTests();
 
   function filterTests(type, btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    listEl.querySelectorAll('.test-item').forEach(item => {
+    document.querySelectorAll('.test-item').forEach(item => {
       const name = item.querySelector('.test-name').textContent.toLowerCase();
       item.style.display = (type === 'all' || name.includes(type)) ? '' : 'none';
     });
