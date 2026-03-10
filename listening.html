@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listening Tests – Adiba-Amonova</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <span class="nav-logo-dot"></span>Adiba-Amonova
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="reading.html">Reading</a></li>
+    <li><a href="listening.html">Listening</a></li>
+    <li><a href="mock-tests.html">Mock Tests</a></li>
+    <li><a href="dashboard.html">My Dashboard</a></li>
+    <li><a href="#" id="nav-logout" style="color:var(--text-subtle);">Logout</a></li>
+    <li><a href="admin.html" class="nav-admin">Admin</a></li>
+  </ul>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>🎧 Listening Practice</h1>
+    <p>Audio tests with answer sheets. Use headphones for the best experience.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div id="announcements-container"></div>
+  <div id="listening-list" class="test-list"></div>
+</div>
+
+<footer>
+  <p>© 2025 Adiba-Amonova IELTS Platform &nbsp;·&nbsp; <a href="admin.html">Admin</a></p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  _sb.auth.getSession().then(({data:{session}})=>{
+    if(!session) location.href="login.html?next="+encodeURIComponent(location.pathname.split("/").pop());
+  } else {
+    const lb = document.getElementById('nav-logout');
+    if(lb) lb.addEventListener('click', async e => { e.preventDefault(); await _sb.auth.signOut(); location.href='login.html'; });
+  }
+});
+</script>
+<script>
+  loadAnnouncements('announcements-container');
+
+  async function loadListening() {
+    const listEl = document.getElementById('listening-list');
+    listEl.innerHTML = `<div class="loading-spinner"><div class="spinner"></div><span>Loading listening tests…</span></div>`;
+    try {
+      const { data, error } = await _sb.storage.from(BUCKETS.listening).list('', {
+        limit: 200, sortBy: { column: 'created_at', order: 'desc' }
+      });
+      if (error) throw error;
+      const files = (data||[]).filter(f => f.name !== '.emptyFolderPlaceholder');
+      if (!files.length) {
+        listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🎧</div><h3>No listening tests yet</h3><p>Check back soon!</p></div>`;
+        return;
+      }
+      listEl.innerHTML = files.map((file, i) => {
+        const { data: { publicUrl } } = _sb.storage.from(BUCKETS.listening).getPublicUrl(file.name);
+        const ext = file.name.split('.').pop().toLowerCase();
+        const isAudio = ['mp3','wav','ogg','m4a'].includes(ext);
+        const niceName = file.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' ');
+        if (isAudio) {
+          return `
+            <div class="test-item" style="flex-direction:column;align-items:flex-start;gap:.75rem;">
+              <div class="test-item-left" style="width:100%;">
+                <div class="test-num">${String(i+1).padStart(2,'0')}</div>
+                <div style="flex:1;">
+                  <div class="test-name">${niceName}</div>
+                  <div class="test-date">${formatDate(file.created_at)} · ${formatSize(file.metadata?.size)}</div>
+                </div>
+                <span class="test-badge">🔊 Audio</span>
+              </div>
+              <div style="width:100%;padding-left:50px;">
+                <audio controls style="width:100%;height:34px;accent-color:var(--blue-vivid);">
+                  <source src="${publicUrl}" type="audio/${ext}">
+                </audio>
+              </div>
+            </div>`;
+        }
+        return `
+          <a href="${publicUrl}" target="_blank" class="test-item">
+            <div class="test-item-left">
+              <div class="test-num">${String(i+1).padStart(2,'0')}</div>
+              <div><div class="test-name">${niceName}</div><div class="test-date">${formatDate(file.created_at)}</div></div>
+            </div>
+            <span class="test-badge">${fileLabel(file.name)}</span>
+          </a>`;
+      }).join('');
+    } catch(err) {
+      document.getElementById('listening-list').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><h3>Error loading tests</h3><p>${err.message}</p></div>`;
+    }
+  }
+  loadListening();
+</script>
+</body>
+</html>

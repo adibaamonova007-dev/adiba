@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Adiba-Amonova</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-page">
+  <div class="login-box">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;margin-bottom:1.5rem;display:flex;align-items:center;gap:.5rem;">
+      <span style="width:8px;height:8px;background:var(--blue-bright);border-radius:50%;box-shadow:0 0 10px var(--blue-bright);display:inline-block;"></span>
+      Adiba-Amonova
+    </div>
+    <h2>Admin Login</h2>
+    <p>Sign in to manage IELTS content and announcements.</p>
+    <div id="login-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" id="login-email" class="form-input" placeholder="admin@example.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="login-password" class="form-input" placeholder="••••••••" />
+    </div>
+    <button onclick="doLogin()" class="btn btn-blue" style="width:100%;justify-content:center;">Sign In →</button>
+    <p style="margin-top:1.25rem;font-size:0.78rem;color:var(--text-subtle);text-align:center;">
+      Set up admin accounts in Supabase → Authentication → Users
+    </p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo">
+      <span class="nav-logo-dot"></span>Adiba-Amonova
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">← Back to Site</a></li>
+      <li><a href="#" onclick="doLogout()">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="sidebar-label">Upload</div>
+      <div class="sidebar-link active" id="nav-reading" onclick="showPanel('reading')">📖 Reading Tests</div>
+      <div class="sidebar-link" id="nav-listening" onclick="showPanel('listening')">🎧 Listening Tests</div>
+      <div class="sidebar-link" id="nav-mock" onclick="showPanel('mock')">🏆 Mock Exams</div>
+      <div class="sidebar-label">Manage</div>
+      <div class="sidebar-link" id="nav-files" onclick="showPanel('files')">📂 All Files</div>
+      <div class="sidebar-link" id="nav-announce" onclick="showPanel('announce')">📢 Announcements</div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- READING -->
+      <div id="panel-reading">
+        <h2>Upload Reading Tests</h2>
+        <p class="subtitle">Accepted: .html, .pdf, .doc, .docx</p>
+        <div id="reading-alert"></div>
+        <div class="upload-zone" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'reading')">
+          <input type="file" multiple accept=".html,.pdf,.doc,.docx" onchange="handleFileSelect(event,'reading')" />
+          <div class="upload-icon">📄</div>
+          <h3>Drag & drop files here</h3>
+          <p>or click to browse · HTML, PDF, DOC accepted</p>
+        </div>
+        <div id="reading-progress" style="display:none;margin-top:1rem;">
+          <p style="font-size:.83rem;margin-bottom:.5rem;" id="reading-progress-label">Uploading…</p>
+          <div class="progress-bar"><div class="progress-fill" id="reading-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- LISTENING -->
+      <div id="panel-listening" style="display:none;">
+        <h2>Upload Listening Tests</h2>
+        <p class="subtitle">Accepted: .mp3, .wav, .m4a, .ogg, .pdf</p>
+        <div id="listening-alert"></div>
+        <div class="upload-zone" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'listening')">
+          <input type="file" multiple accept=".mp3,.wav,.m4a,.ogg,.pdf" onchange="handleFileSelect(event,'listening')" />
+          <div class="upload-icon">🎵</div>
+          <h3>Drag & drop audio files here</h3>
+          <p>or click to browse · MP3, WAV, M4A accepted</p>
+        </div>
+        <div id="listening-progress" style="display:none;margin-top:1rem;">
+          <p style="font-size:.83rem;margin-bottom:.5rem;" id="listening-progress-label">Uploading…</p>
+          <div class="progress-bar"><div class="progress-fill" id="listening-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- MOCK -->
+      <div id="panel-mock" style="display:none;">
+        <h2>Upload Mock Exams</h2>
+        <p class="subtitle">Accepted: .pdf, .html, .zip</p>
+        <div id="mock-alert"></div>
+        <div class="upload-zone" ondragover="handleDrag(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event,'mock')">
+          <input type="file" multiple accept=".pdf,.html,.zip" onchange="handleFileSelect(event,'mock')" />
+          <div class="upload-icon">📋</div>
+          <h3>Drag & drop exam files here</h3>
+          <p>or click to browse · PDF, HTML, ZIP accepted</p>
+        </div>
+        <div id="mock-progress" style="display:none;margin-top:1rem;">
+          <p style="font-size:.83rem;margin-bottom:.5rem;" id="mock-progress-label">Uploading…</p>
+          <div class="progress-bar"><div class="progress-fill" id="mock-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- FILES -->
+      <div id="panel-files" style="display:none;">
+        <h2>All Uploaded Files</h2>
+        <p class="subtitle">View and delete files from any bucket.</p>
+        <div style="display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+          <button class="filter-btn active" onclick="loadAllFiles('reading',this)">📖 Reading</button>
+          <button class="filter-btn" onclick="loadAllFiles('listening',this)">🎧 Listening</button>
+          <button class="filter-btn" onclick="loadAllFiles('mock',this)">🏆 Mock</button>
+        </div>
+        <div id="file-table-container">
+          <div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>
+        </div>
+      </div>
+
+      <!-- ANNOUNCEMENTS -->
+      <div id="panel-announce" style="display:none;">
+        <h2>Announcements</h2>
+        <p class="subtitle">Post notices visible to all students on every page.</p>
+        <div id="announce-alert"></div>
+        <div style="background:rgba(12,31,63,0.5);border:1px solid rgba(59,143,232,0.12);border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem;">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" id="ann-title" class="form-input" placeholder="e.g. New Mock Test Available!" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea id="ann-body" class="form-textarea" placeholder="Write your announcement here…"></textarea>
+          </div>
+          <button onclick="postAnnouncement()" class="btn btn-blue">📢 Post Announcement</button>
+        </div>
+        <h3 style="margin-bottom:1rem;font-size:.97rem;font-weight:500;">Posted Announcements</h3>
+        <div id="ann-list"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+// AUTH
+async function checkAuth() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) showDashboard();
+}
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-password').value;
+  const alertEl = document.getElementById('login-alert');
+  alertEl.innerHTML = '';
+  if (!email || !pwd) { alertEl.innerHTML = '<div class="alert alert-error">Please enter both fields.</div>'; return; }
+  const { error } = await _sb.auth.signInWithPassword({ email, password: pwd });
+  if (error) { alertEl.innerHTML = `<div class="alert alert-error">❌ ${error.message}</div>`; }
+  else showDashboard();
+}
+async function doLogout() {
+  await _sb.auth.signOut();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  showPanel('reading');
+}
+checkAuth();
+
+// PANELS
+function showPanel(name) {
+  ['reading','listening','mock','files','announce'].forEach(n => {
+    document.getElementById('panel-'+n).style.display = 'none';
+    const nav = document.getElementById('nav-'+n);
+    if (nav) nav.classList.remove('active');
+  });
+  document.getElementById('panel-'+name).style.display = 'block';
+  const nav = document.getElementById('nav-'+name);
+  if (nav) nav.classList.add('active');
+  if (name === 'files') loadAllFiles('reading', document.querySelector('#panel-files .filter-btn'));
+  if (name === 'announce') renderAnnouncements();
+}
+
+// UPLOAD
+function handleDrag(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function handleDrop(e, type) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); uploadFiles(Array.from(e.dataTransfer.files), type); }
+function handleFileSelect(e, type) { uploadFiles(Array.from(e.target.files), type); e.target.value = ''; }
+
+async function uploadFiles(files, type) {
+  if (!files.length) return;
+  const bucket = BUCKETS[type];
+  const alertEl = document.getElementById(type+'-alert');
+  const progressDiv = document.getElementById(type+'-progress');
+  const progressLabel = document.getElementById(type+'-progress-label');
+  const progressFill = document.getElementById(type+'-fill');
+  alertEl.innerHTML = '';
+  progressDiv.style.display = 'block';
+  let done = 0, errors = [];
+  for (const file of files) {
+    progressLabel.textContent = `Uploading ${file.name} (${done+1}/${files.length})…`;
+    progressFill.style.width = Math.round((done/files.length)*100)+'%';
+    const { error } = await _sb.storage.from(bucket).upload(file.name, file, { upsert: true });
+    if (error) errors.push(`${file.name}: ${error.message}`);
+    done++;
+  }
+  progressFill.style.width = '100%';
+  setTimeout(() => { progressDiv.style.display='none'; progressFill.style.width='0%'; }, 900);
+  alertEl.innerHTML = errors.length
+    ? `<div class="alert alert-error">⚠️ Some files failed:<br>${errors.join('<br>')}</div>`
+    : `<div class="alert alert-success">✅ ${done} file(s) uploaded successfully!</div>`;
+}
+
+// FILES MANAGER
+let currentBucket = 'reading';
+async function loadAllFiles(type, btn) {
+  currentBucket = type;
+  document.querySelectorAll('#panel-files .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const container = document.getElementById('file-table-container');
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>';
+  const { data, error } = await _sb.storage.from(BUCKETS[type]).list('', { limit:500, sortBy:{column:'created_at',order:'desc'} });
+  const files = (data||[]).filter(f => f.name !== '.emptyFolderPlaceholder');
+  if (error || !files.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div><h3>No files yet</h3><p>${error?.message||'Upload some files first.'}</p></div>`;
+    return;
+  }
+  container.innerHTML = `<table class="data-table"><thead><tr><th>File Name</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr></thead><tbody>${
+    files.map(f => {
+      const { data: { publicUrl } } = _sb.storage.from(BUCKETS[type]).getPublicUrl(f.name);
+      return `<tr>
+        <td><a href="${publicUrl}" target="_blank" style="color:var(--blue-sky);text-decoration:none;">${f.name}</a></td>
+        <td>${formatSize(f.metadata?.size)}</td>
+        <td>${formatDate(f.created_at)}</td>
+        <td style="display:flex;gap:.4rem;">
+          <a href="${publicUrl}" target="_blank" class="action-btn action-btn-primary">View</a>
+          <button onclick="deleteFile('${f.name}')" class="action-btn action-btn-danger">Delete</button>
+        </td>
+      </tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+async function deleteFile(name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const { error } = await _sb.storage.from(BUCKETS[currentBucket]).remove([name]);
+  if (error) { showToast('Delete failed: '+error.message, 'error'); return; }
+  showToast(`"${name}" deleted.`, 'success');
+  loadAllFiles(currentBucket, null);
+}
+
+// ANNOUNCEMENTS
+function postAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  if (!title||!body) { document.getElementById('announce-alert').innerHTML='<div class="alert alert-error">Please fill in both fields.</div>'; return; }
+  const ann = JSON.parse(localStorage.getItem('adiba_announcements')||'[]');
+  ann.unshift({ id: Date.now(), title, body });
+  localStorage.setItem('adiba_announcements', JSON.stringify(ann.slice(0,10)));
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  document.getElementById('announce-alert').innerHTML = '<div class="alert alert-success">✅ Announcement posted!</div>';
+  renderAnnouncements();
+}
+function deleteAnnouncement(id) {
+  const ann = JSON.parse(localStorage.getItem('adiba_announcements')||'[]').filter(a=>a.id!==id);
+  localStorage.setItem('adiba_announcements', JSON.stringify(ann));
+  renderAnnouncements();
+}
+function renderAnnouncements() {
+  const listEl = document.getElementById('ann-list');
+  if (!listEl) return;
+  const ann = JSON.parse(localStorage.getItem('adiba_announcements')||'[]');
+  if (!ann.length) { listEl.innerHTML='<p style="color:var(--text-muted);font-size:.87rem;">No announcements posted yet.</p>'; return; }
+  listEl.innerHTML = ann.map(a=>`
+    <div class="announcement-bar" style="margin-bottom:.75rem;">
+      <div class="ann-icon">📢</div>
+      <div style="flex:1;"><div class="ann-title">${a.title}</div><div class="ann-body">${a.body}</div></div>
+      <button onclick="deleteAnnouncement(${a.id})" class="action-btn action-btn-danger" style="flex-shrink:0;">Delete</button>
+    </div>`).join('');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('login-screen').style.display!=='none') doLogin();
+});
+</script>
+</body>
+</html>

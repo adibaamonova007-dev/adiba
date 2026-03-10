@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – Adiba-Amonova</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    .auth-tabs { display:flex; gap:0; margin-bottom:2rem; background:rgba(7,20,40,0.8); border-radius:10px; padding:4px; }
+    .auth-tab {
+      flex:1; padding:.6rem; text-align:center; cursor:pointer;
+      border-radius:8px; font-size:.88rem; font-weight:500;
+      color:var(--text-muted); transition:var(--transition); border:none; background:transparent;
+      font-family:'Outfit',sans-serif;
+    }
+    .auth-tab.active { background:var(--blue-vivid); color:var(--white); }
+    .divider { display:flex; align-items:center; gap:1rem; margin:1.5rem 0; color:var(--text-subtle); font-size:.8rem; }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background:rgba(59,143,232,0.12); }
+  </style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-box" style="max-width:440px;">
+
+    <a href="index.html" style="font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:700;
+      display:flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--white);margin-bottom:2rem;">
+      <span style="width:8px;height:8px;background:var(--blue-bright);border-radius:50%;
+        box-shadow:0 0 10px var(--blue-bright);display:inline-block;flex-shrink:0;"></span>
+      Adiba-Amonova
+    </a>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <div id="auth-alert"></div>
+
+    <!-- LOGIN FORM -->
+    <div id="form-login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="login-email" class="form-input" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="login-password" class="form-input" placeholder="••••••••" />
+      </div>
+      <button onclick="doLogin()" class="btn btn-blue" style="width:100%;justify-content:center;margin-top:.5rem;">
+        Sign In →
+      </button>
+      <p style="margin-top:1rem;font-size:.8rem;color:var(--text-subtle);text-align:center;">
+        <a href="#" onclick="showReset()" style="color:var(--blue-sky);">Forgot password?</a>
+      </p>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div id="form-signup" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" id="signup-name" class="form-input" placeholder="Your full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="signup-email" class="form-input" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="signup-password" class="form-input" placeholder="At least 6 characters" />
+      </div>
+      <button onclick="doSignup()" class="btn btn-blue" style="width:100%;justify-content:center;margin-top:.5rem;">
+        Create Account →
+      </button>
+    </div>
+
+    <!-- RESET FORM -->
+    <div id="form-reset" style="display:none;">
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:1.25rem;font-weight:300;">
+        Enter your email and we'll send you a password reset link.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="reset-email" class="form-input" placeholder="your@email.com" />
+      </div>
+      <button onclick="doReset()" class="btn btn-blue" style="width:100%;justify-content:center;">
+        Send Reset Link
+      </button>
+      <p style="margin-top:1rem;font-size:.8rem;text-align:center;">
+        <a href="#" onclick="switchTab('login')" style="color:var(--blue-sky);">← Back to Sign In</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Redirect if already logged in
+  _sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      const next = new URLSearchParams(location.search).get('next') || 'dashboard.html';
+      location.href = next;
+    }
+  });
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab==='login');
+    document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+    document.getElementById('form-login').style.display = tab==='login' ? '' : 'none';
+    document.getElementById('form-signup').style.display = tab==='signup' ? '' : 'none';
+    document.getElementById('form-reset').style.display = 'none';
+    document.getElementById('auth-alert').innerHTML = '';
+  }
+
+  function showReset() {
+    document.getElementById('form-login').style.display = 'none';
+    document.getElementById('form-reset').style.display = '';
+    document.getElementById('auth-alert').innerHTML = '';
+  }
+
+  function setAlert(msg, type='error') {
+    document.getElementById('auth-alert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pwd   = document.getElementById('login-password').value;
+    if (!email || !pwd) { setAlert('Please fill in all fields.'); return; }
+    const { error } = await _sb.auth.signInWithPassword({ email, password: pwd });
+    if (error) { setAlert('❌ ' + error.message); return; }
+    const next = new URLSearchParams(location.search).get('next') || 'dashboard.html';
+    location.href = next;
+  }
+
+  async function doSignup() {
+    const name  = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const pwd   = document.getElementById('signup-password').value;
+    if (!name || !email || !pwd) { setAlert('Please fill in all fields.'); return; }
+    if (pwd.length < 6) { setAlert('Password must be at least 6 characters.'); return; }
+    const { error } = await _sb.auth.signUp({
+      email, password: pwd,
+      options: { data: { full_name: name } }
+    });
+    if (error) { setAlert('❌ ' + error.message); return; }
+    setAlert('✅ Account created! Check your email to confirm, then sign in.', 'success');
+  }
+
+  async function doReset() {
+    const email = document.getElementById('reset-email').value.trim();
+    if (!email) { setAlert('Please enter your email.'); return; }
+    const { error } = await _sb.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + '/login.html'
+    });
+    if (error) { setAlert('❌ ' + error.message); return; }
+    setAlert('✅ Reset link sent! Check your email.', 'success');
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('form-login').style.display !== 'none') doLogin();
+      else if (document.getElementById('form-signup').style.display !== 'none') doSignup();
+    }
+  });
+</script>
+</body>
+</html>

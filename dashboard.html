@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard – Adiba-Amonova</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    .dash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; margin-bottom:2.5rem; }
+    .dash-stat {
+      background:rgba(12,31,63,0.55); border:1px solid rgba(59,143,232,0.12);
+      border-radius:var(--radius); padding:1.5rem; text-align:center; backdrop-filter:blur(8px);
+    }
+    .dash-stat-num { font-family:'Cormorant Garamond',serif; font-size:2.4rem; font-weight:700; color:var(--blue-sky); line-height:1; }
+    .dash-stat-label { font-size:.76rem; color:var(--text-subtle); text-transform:uppercase; letter-spacing:1.2px; margin-top:.4rem; }
+
+    .score-entry {
+      background:rgba(12,31,63,0.5); border:1px solid rgba(59,143,232,0.1);
+      border-radius:10px; padding:1rem 1.5rem;
+      display:flex; align-items:center; justify-content:space-between; gap:1rem;
+      margin-bottom:.55rem; backdrop-filter:blur(6px);
+    }
+    .score-badge {
+      font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:700;
+      color:var(--blue-sky); min-width:52px; text-align:center;
+    }
+    .score-badge.band-high { color:#5de89a; }
+    .score-badge.band-mid  { color:var(--blue-sky); }
+    .score-badge.band-low  { color:#f08888; }
+
+    .progress-ring { display:flex; align-items:center; gap:1.5rem; }
+    .ring-wrap { position:relative; width:80px; height:80px; flex-shrink:0; }
+    .ring-wrap svg { transform:rotate(-90deg); }
+    .ring-label {
+      position:absolute; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; font-size:.7rem; color:var(--text-muted);
+    }
+    .ring-label strong { font-size:1.1rem; color:var(--white); font-family:'Cormorant Garamond',serif; }
+
+    .log-score-btn {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:rgba(30,111,207,0.12); border:1px solid rgba(59,143,232,0.2);
+      color:var(--blue-sky); border-radius:8px; padding:.45rem 1rem;
+      font-size:.82rem; font-weight:600; cursor:pointer; transition:var(--transition);
+      font-family:'Outfit',sans-serif;
+    }
+    .log-score-btn:hover { background:rgba(30,111,207,0.22); }
+
+    /* Score modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,8,20,.75);backdrop-filter:blur(6px);
+      z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;
+      opacity:0;pointer-events:none;transition:var(--transition); }
+    .modal-overlay.open { opacity:1;pointer-events:all; }
+    .modal { background:var(--blue-dark);border:1px solid rgba(59,143,232,.15);
+      border-radius:16px;padding:2rem;width:100%;max-width:460px;
+      transform:translateY(20px);transition:var(--transition);box-shadow:var(--shadow); }
+    .modal-overlay.open .modal { transform:translateY(0); }
+    .modal-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem; }
+    .modal-title { font-family:'Cormorant Garamond',serif;font-size:1.3rem; }
+    .modal-close { background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.3rem;transition:var(--transition); }
+    .modal-close:hover { color:var(--white); }
+
+    .band-selector { display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;margin-bottom:.5rem; }
+    .band-btn {
+      padding:.5rem;border-radius:7px;text-align:center;font-size:.85rem;font-weight:600;
+      cursor:pointer;border:1.5px solid rgba(59,143,232,.15);background:transparent;
+      color:var(--text-muted);transition:var(--transition);font-family:'Outfit',sans-serif;
+    }
+    .band-btn:hover { border-color:var(--blue-vivid);color:var(--blue-sky); }
+    .band-btn.selected { background:var(--blue-vivid);border-color:var(--blue-vivid);color:var(--white); }
+
+    .tab-bar { display:flex;gap:.25rem;margin-bottom:1.75rem;border-bottom:1px solid rgba(59,143,232,.1);padding-bottom:.5rem; }
+    .tab-btn { padding:.5rem 1.1rem;border:none;background:transparent;color:var(--text-muted);
+      font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;
+      border-radius:8px;transition:var(--transition); }
+    .tab-btn.active { color:var(--blue-sky);background:rgba(30,111,207,.1); }
+
+    .avatar {
+      width:44px;height:44px;background:var(--blue-vivid);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;
+      flex-shrink:0;box-shadow:0 0 16px rgba(30,111,207,.35);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <span class="nav-logo-dot"></span>Adiba-Amonova
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="reading.html">Reading</a></li>
+    <li><a href="listening.html">Listening</a></li>
+    <li><a href="mock-tests.html">Mock Tests</a></li>
+    <li><a href="dashboard.html" class="active">My Dashboard</a></li>
+    <li><a href="#" id="logout-btn" style="color:var(--text-subtle);">Logout</a></li>
+  </ul>
+</nav>
+
+<!-- WELCOME HEADER -->
+<div class="page-header">
+  <div class="page-header-inner" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div class="avatar" id="user-avatar">?</div>
+      <div>
+        <h1 style="font-size:1.75rem;margin-bottom:.15rem;">Welcome back, <span id="user-name">Student</span> 👋</h1>
+        <p id="user-email" style="color:var(--text-subtle);font-size:.85rem;"></p>
+      </div>
+    </div>
+    <button class="log-score-btn" onclick="openScoreModal()">＋ Log a Score</button>
+  </div>
+</div>
+
+<div class="section">
+  <div id="announcements-container"></div>
+
+  <!-- STATS -->
+  <div class="dash-grid" id="stats-grid">
+    <div class="dash-stat">
+      <div class="dash-stat-num" id="stat-total">—</div>
+      <div class="dash-stat-label">Tests Logged</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-num" id="stat-avg">—</div>
+      <div class="dash-stat-label">Average Band</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-num" id="stat-best">—</div>
+      <div class="dash-stat-label">Best Score</div>
+    </div>
+    <div class="dash-stat">
+      <div class="dash-stat-num" id="stat-streak">—</div>
+      <div class="dash-stat-label">Day Streak 🔥</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('scores',this)">📊 My Scores</button>
+    <button class="tab-btn" onclick="showTab('completed',this)">✅ Completed Tests</button>
+    <button class="tab-btn" onclick="showTab('progress',this)">📈 Progress</button>
+  </div>
+
+  <!-- SCORES TAB -->
+  <div id="tab-scores">
+    <div id="scores-list">
+      <div class="loading-spinner"><div class="spinner"></div><span>Loading scores…</span></div>
+    </div>
+  </div>
+
+  <!-- COMPLETED TAB -->
+  <div id="tab-completed" style="display:none;">
+    <div id="completed-list">
+      <div class="loading-spinner"><div class="spinner"></div><span>Loading…</span></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS TAB -->
+  <div id="tab-progress" style="display:none;">
+    <div id="progress-section">
+      <div class="loading-spinner"><div class="spinner"></div><span>Loading progress…</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LOG SCORE MODAL -->
+<div class="modal-overlay" id="score-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Log a Test Score</div>
+      <button class="modal-close" onclick="closeScoreModal()">✕</button>
+    </div>
+    <div id="modal-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Test Type</label>
+      <select id="score-type" class="form-select">
+        <option value="reading">📖 Reading</option>
+        <option value="listening">🎧 Listening</option>
+        <option value="writing">✍️ Writing</option>
+        <option value="speaking">🎤 Speaking</option>
+        <option value="mock">🏆 Full Mock Exam</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Test Name (optional)</label>
+      <input type="text" id="score-name" class="form-input" placeholder="e.g. Reading Test 3" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Band Score</label>
+      <div class="band-selector" id="band-selector">
+        <!-- filled by JS -->
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea id="score-notes" class="form-textarea" style="min-height:70px;" placeholder="What did you find difficult? What went well?"></textarea>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:.5rem;">
+      <button onclick="closeScoreModal()" class="btn btn-outline" style="padding:.65rem 1.2rem;">Cancel</button>
+      <button onclick="saveScore()" class="btn btn-blue">Save Score ✓</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 Adiba-Amonova IELTS Platform &nbsp;·&nbsp; <a href="index.html">Home</a></p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+const SCORES_KEY = 'adiba_scores';
+let currentUser = null;
+let selectedBand = null;
+let allScores = [];
+
+// ── AUTH GUARD ───────────────────────────────────
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { location.href = 'login.html?next=dashboard.html'; return; }
+  currentUser = session.user;
+  setupUser();
+  loadScores();
+  loadAnnouncements('announcements-container');
+}
+
+function setupUser() {
+  const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('user-name').textContent = name.split(' ')[0];
+  document.getElementById('user-email').textContent = currentUser.email;
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('logout-btn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await _sb.auth.signOut();
+    location.href = 'login.html';
+  });
+}
+
+// ── SCORES (stored in localStorage keyed by user id) ──
+function getStorageKey() { return `${SCORES_KEY}_${currentUser.id}`; }
+
+function loadScores() {
+  allScores = JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+  renderStats();
+  renderScoresList();
+  renderCompleted();
+  renderProgress();
+}
+
+function renderStats() {
+  document.getElementById('stat-total').textContent = allScores.length || '0';
+  if (!allScores.length) {
+    document.getElementById('stat-avg').textContent = '—';
+    document.getElementById('stat-best').textContent = '—';
+    document.getElementById('stat-streak').textContent = '0';
+    return;
+  }
+  const bands = allScores.map(s=>s.band);
+  const avg = (bands.reduce((a,b)=>a+b,0)/bands.length).toFixed(1);
+  const best = Math.max(...bands).toFixed(1);
+  document.getElementById('stat-avg').textContent = avg;
+  document.getElementById('stat-best').textContent = best;
+  // streak: count consecutive days with at least one score
+  const days = [...new Set(allScores.map(s => s.date.slice(0,10)))].sort().reverse();
+  let streak = 0;
+  let today = new Date(); today.setHours(0,0,0,0);
+  for (const d of days) {
+    const diff = Math.round((today - new Date(d)) / 86400000);
+    if (diff === streak) streak++;
+    else break;
+  }
+  document.getElementById('stat-streak').textContent = streak;
+}
+
+function renderScoresList() {
+  const el = document.getElementById('scores-list');
+  if (!allScores.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div>
+      <h3>No scores logged yet</h3><p>Click "Log a Score" after completing a test.</p></div>`;
+    return;
+  }
+  const sorted = [...allScores].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  el.innerHTML = sorted.map((s,i) => {
+    const bandClass = s.band >= 7 ? 'band-high' : s.band >= 5.5 ? 'band-mid' : 'band-low';
+    const icons = {reading:'📖',listening:'🎧',writing:'✍️',speaking:'🎤',mock:'🏆'};
+    return `
+      <div class="score-entry">
+        <div style="display:flex;align-items:center;gap:1rem;flex:1;min-width:0;">
+          <div class="score-badge ${bandClass}">${s.band}</div>
+          <div style="min-width:0;">
+            <div style="font-weight:500;font-size:.9rem;">${s.name || s.type.charAt(0).toUpperCase()+s.type.slice(1)+' Test'}</div>
+            <div style="font-size:.78rem;color:var(--text-subtle);">${icons[s.type]||'📝'} ${s.type.charAt(0).toUpperCase()+s.type.slice(1)} · ${formatDate(s.date)}</div>
+            ${s.notes ? `<div style="font-size:.78rem;color:var(--text-muted);margin-top:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.notes}</div>` : ''}
+          </div>
+        </div>
+        <button onclick="deleteScore(${s.id})" class="action-btn action-btn-danger" style="flex-shrink:0;">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function renderCompleted() {
+  const el = document.getElementById('completed-list');
+  const types = ['reading','listening','writing','speaking','mock'];
+  const counts = {};
+  types.forEach(t => counts[t] = allScores.filter(s=>s.type===t).length);
+  const icons = {reading:'📖',listening:'🎧',writing:'✍️',speaking:'🎤',mock:'🏆'};
+  const labels = {reading:'Reading',listening:'Listening',writing:'Writing',speaking:'Speaking',mock:'Mock Exams'};
+  el.innerHTML = `<div class="cards-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));">` +
+    types.map(t => `
+      <div class="card" style="text-align:center;padding:1.5rem 1rem;">
+        <div style="font-size:2rem;margin-bottom:.6rem;">${icons[t]}</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;color:var(--blue-sky);">${counts[t]}</div>
+        <div style="font-size:.8rem;color:var(--text-subtle);text-transform:uppercase;letter-spacing:1px;margin-top:.3rem;">${labels[t]}</div>
+      </div>`).join('') + '</div>' +
+    `<div style="margin-top:2rem;">
+      <div class="section-label" style="margin-bottom:1rem;">Recent Activity</div>` +
+      (allScores.length ? [...allScores].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map(s=>`
+        <div class="test-item" style="margin-bottom:.5rem;">
+          <div class="test-item-left">
+            <div class="test-num" style="color:${s.band>=7?'#5de89a':s.band>=5.5?'var(--blue-sky)':'#f08888'}">${s.band}</div>
+            <div>
+              <div class="test-name">${s.name||s.type+' test'}</div>
+              <div class="test-date">${formatDate(s.date)}</div>
+            </div>
+          </div>
+          <span class="test-badge">${icons[s.type]||'📝'} ${s.type}</span>
+        </div>`).join('') :
+      `<div class="empty-state" style="padding:2rem;"><div class="empty-icon">📋</div><h3>No activity yet</h3></div>`)
+    + '</div>';
+}
+
+function renderProgress() {
+  const el = document.getElementById('progress-section');
+  if (allScores.length < 2) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📈</div>
+      <h3>Need more data</h3><p>Log at least 2 scores to see your progress chart.</p></div>`;
+    return;
+  }
+  const types = ['reading','listening','writing','speaking','mock'];
+  const icons = {reading:'📖',listening:'🎧',writing:'✍️',speaking:'🎤',mock:'🏆'};
+  const rings = types.map(t => {
+    const scores = allScores.filter(s=>s.type===t);
+    if (!scores.length) return '';
+    const avg = (scores.reduce((a,b)=>a+b.band,0)/scores.length).toFixed(1);
+    const pct = (avg/9)*100;
+    const r=32, circ=2*Math.PI*r;
+    const dash = (pct/100)*circ;
+    const color = avg>=7?'#5de89a':avg>=5.5?'var(--blue-bright)':'#f08888';
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.75rem;">
+        <div class="ring-wrap">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="${r}" fill="none" stroke="rgba(59,143,232,.1)" stroke-width="8"/>
+            <circle cx="40" cy="40" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+              stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/>
+          </svg>
+          <div class="ring-label"><strong>${avg}</strong><span>avg</span></div>
+        </div>
+        <div style="font-size:.78rem;color:var(--text-muted);">${icons[t]} ${t.charAt(0).toUpperCase()+t.slice(1)}</div>
+      </div>`;
+  }).filter(Boolean).join('');
+
+  // simple line chart using SVG
+  const sorted = [...allScores].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-10);
+  const W=500, H=120, pad=20;
+  const minB=1,maxB=9;
+  const pts = sorted.map((s,i)=>{
+    const x = pad + (i/(sorted.length-1||1))*(W-pad*2);
+    const y = H-pad - ((s.band-minB)/(maxB-minB))*(H-pad*2);
+    return {x,y,s};
+  });
+  const path = pts.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = path + ` L${pts[pts.length-1].x.toFixed(1)},${H-pad} L${pts[0].x.toFixed(1)},${H-pad} Z`;
+
+  el.innerHTML = `
+    <div class="section-label" style="margin-bottom:1.25rem;">Band Score by Category</div>
+    <div style="display:flex;flex-wrap:wrap;gap:2rem;justify-content:center;margin-bottom:3rem;">${rings}</div>
+    <div class="section-label" style="margin-bottom:1.25rem;">Score Trend (last 10)</div>
+    <div style="background:rgba(12,31,63,.55);border:1px solid rgba(59,143,232,.1);border-radius:var(--radius);padding:1.5rem;overflow:hidden;">
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
+        ${[1,3,5,7,9].map(b=>{
+          const y=H-pad-((b-minB)/(maxB-minB))*(H-pad*2);
+          return `<line x1="${pad}" y1="${y.toFixed(1)}" x2="${W-pad}" y2="${y.toFixed(1)}" stroke="rgba(59,143,232,.08)" stroke-width="1"/>
+                  <text x="${pad-4}" y="${(y+4).toFixed(1)}" fill="rgba(122,163,204,.6)" font-size="10" text-anchor="end">${b}</text>`;
+        }).join('')}
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(30,111,207,.35)"/>
+            <stop offset="100%" stop-color="rgba(30,111,207,0)"/>
+          </linearGradient>
+        </defs>
+        <path d="${area}" fill="url(#areaGrad)"/>
+        <path d="${path}" fill="none" stroke="var(--blue-bright)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="var(--blue-sky)"/>`).join('')}
+      </svg>
+      <div style="display:flex;justify-content:space-between;margin-top:.5rem;font-size:.72rem;color:var(--text-subtle);padding:0 ${pad}px;">
+        ${sorted.map(s=>s.type.slice(0,3)).join('</div><div>')==='</div><div>' ? '' :
+          `<div>${sorted.map(s=>`<span>${s.type.slice(0,3)}</span>`).join('</div><div>')}</div>`}
+      </div>
+    </div>`;
+}
+
+// ── TABS ─────────────────────────────────────────
+function showTab(name, btn) {
+  ['scores','completed','progress'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = 'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).style.display = '';
+  if (btn) btn.classList.add('active');
+}
+
+// ── SCORE MODAL ───────────────────────────────────
+function openScoreModal() {
+  selectedBand = null;
+  // fill band selector
+  const bands = [4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9];
+  document.getElementById('band-selector').innerHTML = bands.map(b=>`
+    <button class="band-btn" onclick="selectBand(${b},this)">${b}</button>`).join('');
+  document.getElementById('score-name').value='';
+  document.getElementById('score-notes').value='';
+  document.getElementById('modal-alert').innerHTML='';
+  document.getElementById('score-modal').classList.add('open');
+}
+function closeScoreModal() { document.getElementById('score-modal').classList.remove('open'); }
+function selectBand(val, btn) {
+  selectedBand = val;
+  document.querySelectorAll('.band-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+function saveScore() {
+  if (!selectedBand) {
+    document.getElementById('modal-alert').innerHTML='<div class="alert alert-error">Please select a band score.</div>';
+    return;
+  }
+  const score = {
+    id: Date.now(),
+    type: document.getElementById('score-type').value,
+    name: document.getElementById('score-name').value.trim(),
+    band: selectedBand,
+    notes: document.getElementById('score-notes').value.trim(),
+    date: new Date().toISOString()
+  };
+  allScores.push(score);
+  localStorage.setItem(getStorageKey(), JSON.stringify(allScores));
+  closeScoreModal();
+  loadScores();
+  showToast('Score saved! 🎯', 'success');
+}
+function deleteScore(id) {
+  if (!confirm('Delete this score?')) return;
+  allScores = allScores.filter(s=>s.id!==id);
+  localStorage.setItem(getStorageKey(), JSON.stringify(allScores));
+  loadScores();
+}
+
+// Close modal on overlay click
+document.getElementById('score-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('score-modal')) closeScoreModal();
+});
+
+init();
+</script>
+</body>
+</html>

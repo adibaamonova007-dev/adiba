@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mock Tests – Adiba-Amonova</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <span class="nav-logo-dot"></span>Adiba-Amonova
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="reading.html">Reading</a></li>
+    <li><a href="listening.html">Listening</a></li>
+    <li><a href="mock-tests.html">Mock Tests</a></li>
+    <li><a href="dashboard.html">My Dashboard</a></li>
+    <li><a href="#" id="nav-logout" style="color:var(--text-subtle);">Logout</a></li>
+    <li><a href="admin.html" class="nav-admin">Admin</a></li>
+  </ul>
+</nav>
+
+<div class="page-header">
+  <div class="page-header-inner">
+    <h1>🏆 Full Mock Exams</h1>
+    <p>Complete IELTS simulations. Sit these under real exam conditions — no interruptions.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div id="announcements-container"></div>
+
+  <div class="alert alert-info">
+    ⏱ <strong>Exam tip:</strong> Set a timer for 2 hours 45 minutes before you begin. No pausing — treat it like the real test.
+  </div>
+
+  <div id="mock-list" class="test-list"></div>
+</div>
+
+<footer>
+  <p>© 2025 Adiba-Amonova IELTS Platform &nbsp;·&nbsp; <a href="admin.html">Admin</a></p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  _sb.auth.getSession().then(({data:{session}})=>{
+    if(!session) location.href="login.html?next="+encodeURIComponent(location.pathname.split("/").pop());
+  } else {
+    const lb = document.getElementById('nav-logout');
+    if(lb) lb.addEventListener('click', async e => { e.preventDefault(); await _sb.auth.signOut(); location.href='login.html'; });
+  }
+});
+</script>
+<script>
+  loadAnnouncements('announcements-container');
+  loadFilesFromBucket(BUCKETS.mock, document.getElementById('mock-list'), 'No mock exams uploaded yet. Check back soon!');
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adiba-Amonova – IELTS Preparation</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="nav-logo">
+    <span class="nav-logo-dot"></span>
+    Adiba-Amonova
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="reading.html">Reading</a></li>
+    <li><a href="listening.html">Listening</a></li>
+    <li><a href="mock-tests.html">Mock Tests</a></li>
+    <li><a href="dashboard.html" id="nav-dashboard" style="display:none;">My Dashboard</a></li>
+    <li><a href="login.html" id="nav-login">Sign In</a></li>
+    <li><a href="admin.html" class="nav-admin">Admin</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">🎓 Official IELTS Preparation Platform</div>
+  <h1>Adiba-Amonova<br><em>IELTS Excellence</em></h1>
+  <p>Master Reading, Listening, and full Mock Exams curated by expert instructors. Your path to Band 9 starts here.</p>
+  <div class="hero-btns">
+    <a href="mock-tests.html" class="btn btn-blue">Start Mock Exam →</a>
+    <a href="reading.html" class="btn btn-outline">Browse Tests</a>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="stat-reading">—</div><div class="stat-label">Reading Tests</div></div>
+  <div class="stat"><div class="stat-num" id="stat-listening">—</div><div class="stat-label">Listening Tests</div></div>
+  <div class="stat"><div class="stat-num" id="stat-mock">—</div><div class="stat-label">Mock Exams</div></div>
+  <div class="stat"><div class="stat-num">Band 9</div><div class="stat-label">Target Score</div></div>
+</div>
+
+<div class="section" style="padding-bottom:0;">
+  <div id="announcements-container"></div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <div class="section-label">Practice Areas</div>
+    <div class="section-title">Choose Your Focus</div>
+  </div>
+  <div class="cards-grid">
+    <a href="reading.html" class="card">
+      <div class="card-icon">📖</div>
+      <div class="card-title">Reading Tests</div>
+      <div class="card-desc">Academic & General Training passages with comprehension questions. Build speed and precision under timed conditions.</div>
+      <div class="card-meta"><span>📝 Multiple formats</span><span>⏱ 60 min</span></div>
+    </a>
+    <a href="listening.html" class="card">
+      <div class="card-icon">🎧</div>
+      <div class="card-title">Listening Practice</div>
+      <div class="card-desc">Real audio recordings — conversations, lectures, and monologues — with full answer sheets and playback.</div>
+      <div class="card-meta"><span>🔊 Audio + answers</span><span>⏱ 30 min</span></div>
+    </a>
+    <a href="mock-tests.html" class="card">
+      <div class="card-icon">🏆</div>
+      <div class="card-title">Full Mock Exams</div>
+      <div class="card-desc">Complete IELTS simulations covering all four sections. Train under real exam conditions.</div>
+      <div class="card-meta"><span>📋 Full exam</span><span>⏱ 2h 45min</span></div>
+    </a>
+  </div>
+</div>
+
+<div class="section" style="padding-top:0;">
+  <div class="section-header">
+    <div class="section-label">Strategy</div>
+    <div class="section-title">How to Score Higher</div>
+  </div>
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Practice Daily</div>
+      <div class="card-desc">45 minutes every day beats a 5-hour weekend session. Build momentum through consistency.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⏱</div>
+      <div class="card-title">Time Every Test</div>
+      <div class="card-desc">Always practice with a timer. IELTS is as much about pacing as it is about knowledge.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">Analyse Mistakes</div>
+      <div class="card-desc">Wrong answers are your roadmap. Spend more time on errors than on correct responses.</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 Adiba-Amonova IELTS Platform &nbsp;·&nbsp; <a href="admin.html">Admin Panel</a></p>
+</footer>
+
+<script src="script.js"></script>
+<script>
+  loadAnnouncements('announcements-container');
+
+  // Show dashboard or sign-in based on session
+  _sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      document.getElementById('nav-dashboard').style.display = '';
+      document.getElementById('nav-login').style.display = 'none';
+    }
+  });
+
+  async function loadStats() {
+    for (const [key, id] of [['reading','stat-reading'],['listening','stat-listening'],['mock','stat-mock']]) {
+      try {
+        const { data } = await _sb.storage.from(BUCKETS[key]).list('', { limit: 500 });
+        document.getElementById(id).textContent = (data||[]).filter(f=>f.name!=='.emptyFolderPlaceholder').length || '0';
+      } catch { document.getElementById(id).textContent = '0'; }
+    }
+  }
+  loadStats();
+</script>
+</body>
+</html>
