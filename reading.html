@@ -81,8 +81,8 @@
       }
       listEl.innerHTML = files.map((file, i) => {
         const niceName = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
-        const examUrl = `exam.html?file=${encodeURIComponent(file.name)}&bucket=reading-tests&name=${encodeURIComponent(niceName)}`;
-        return `
+        const { data: { publicUrl } } = ...
+return `<a href="${publicUrl}"...`
           <a href="${examUrl}" class="test-item">
             <div class="test-item-left">
               <div class="test-num">${String(i+1).padStart(2,'0')}</div>
